@@ -1,0 +1,91 @@
+---
+#=================================================
+#   Create RDS config for App VM
+#=================================================
+- name: Create RDS Config
+  hosts: localhost
+  connection: local
+  gather_facts: False
+  vars_files:
+    - ../credentials.yaml
+    - ../../main/output.json
+  tasks:
+  - name: create rds_config
+    shell: | 
+        cd ../files
+        echo ''db_username = \"{{DBuser.value}}\"'' > rds_config.py
+        echo ''db_password = \"{{DBpass.value}}\"'' >> rds_config.py
+        echo ''db_name     = \"CorpDB\"'' >> rds_config.py
+        echo ''db_host     = \"{{ rds_instance_address.value }}\"'' >> rds_config.py
+        # use double '' because of special shell signs and redirection
+
+  - add_host:
+      hostname: appVM_IP
+      ansible_ssh_host: "{{ appVM_IP.value }}"  
+
+   
+      
+#=================================================
+#   Transfer files to App VM
+#=================================================
+- name: transfer files and run shell
+  hosts: appVM_IP
+  remote_user: ubuntu
+  become: yes
+  become_method: sudo
+  gather_facts: False
+  vars_files:
+    - ../credentials.yaml
+    - ../../main/output.json
+  vars:
+    ansible_ssh_private_key_file: "{{aws_dir}}{{Key_pair.value}}.pem"
+  
+
+  tasks:
+  - copy:
+        src: ../files/rds_config.py
+        dest: /var/www/cgi-bin
+        mode: 0644   
+
+
+#=================================================
+#   in-memory inventory
+#=================================================
+
+- name: add webservers
+  hosts: localhost
+  connection: local
+  gather_facts: False
+  vars_files:
+    - ../credentials.yaml
+    - ../../main/output.json
+  tasks:
+  - name: add Web Servers instances to web_servers group
+    add_host:
+       name: "{{ item }}"
+       group: web_servers
+    with_items:
+      - "{{ webVM_IPs.value }}"
+
+#=================================================
+#   copy App.py to [web_severs] group
+#=================================================
+
+- name: setup app
+  hosts: web_servers
+  remote_user: ubuntu
+  become: yes
+  become_method: sudo
+  gather_facts: False
+  vars_files:
+    - ../credentials.yaml
+    - ../../main/output.json
+  vars:
+    ansible_ssh_private_key_file: "{{aws_dir}}{{Key_pair.value}}.pem"
+
+  tasks:
+  - copy:
+      src: ../files/app.py
+      dest: /var/www/cgi-bin
+      mode: 0755
+

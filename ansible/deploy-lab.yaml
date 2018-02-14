@@ -1,0 +1,12 @@
+---
+- name: Lab Deployment
+  hosts: localhost
+  gather_facts: False
+  
+- include: playbooks/10-AWS-info.yaml
+- include: playbooks/20-PrepareDB.yaml
+- include: playbooks/30-AppVM-setup.yaml
+- include: playbooks/35-Terminal.yaml
+- include: playbooks/40-NSXAgent-setup.yaml
+
+

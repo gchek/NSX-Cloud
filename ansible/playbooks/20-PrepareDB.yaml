@@ -1,0 +1,51 @@
+---
+#=================================================
+#   Create DB Shell for Compute JumpHost
+#=================================================
+- name: Create DB script
+  hosts: localhost
+  connection: local
+  gather_facts: False
+  vars_files:
+    - ../credentials.yaml
+    - ../../main/output.json
+  tasks:
+  - name: create script
+    shell: | 
+        cd ../files
+        echo ''#!/bin/bash'' > createdb.sh
+        echo ''mysql -h {{ rds_instance_address.value }} -u {{DBuser.value}} -p{{DBpass.value}} -v \< corpdb.sql'' >> createdb.sh
+        # use double '' because of special shell signs and redirection
+
+  - add_host:
+      hostname: JH_Compute
+      ansible_ssh_host: "{{ Cmpt1_Jumphost_ip.value }}"     
+
+# =================================================
+#   Transfer files to Compute JumpHost
+# =================================================
+- name: transfer files and run shell
+  hosts: JH_Compute
+  remote_user: ec2-user
+  become: yes
+  become_method: sudo
+  gather_facts: False
+  vars_files:
+    - ../credentials.yaml
+    - ../../main/output.json
+  vars:
+    ansible_ssh_private_key_file: "{{aws_dir}}{{Key_pair.value}}.pem"
+  
+
+  tasks:
+  - copy:
+        src: ../files/corpdb.sql
+        dest: /home/ec2-user
+        mode: 0644   
+  - copy: 
+        src: ../files/createdb.sh 
+        dest: /home/ec2-user 
+        mode: 0755
+  - command: ./createdb.sh
+
+

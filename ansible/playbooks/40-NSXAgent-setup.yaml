@@ -1,0 +1,94 @@
+---
+      
+#=================================================
+#   Add App host
+#=================================================
+- name: add App host
+  hosts: localhost
+  connection: local
+  gather_facts: False
+  vars_files:
+    - ../credentials.yaml
+    - ../../main/output.json
+  tasks:
+  - add_host:
+      hostname: appVM_IP
+      ansible_ssh_host: "{{ appVM_IP.value }}"  
+  - pause:
+      prompt: ".......Make sure NSX Cloud Gateway is installed before installing NSX agents \n.......     Now you can show ping without any security rules\n.......     After, just press Enter to continue installing agents or ^C to abort"    
+
+#=================================================
+#   App VM agent
+#=================================================
+- name: setup agent
+  hosts: appVM_IP
+  remote_user: ubuntu
+  become: yes
+  become_method: sudo
+  gather_facts: False
+  vars_files:
+    - ../credentials.yaml
+    - ../../main/output.json
+  vars:
+    ansible_ssh_private_key_file: "{{aws_dir}}{{Key_pair.value}}.pem"
+  
+  tasks:
+  - name: get agent script
+    get_url:
+      url: http://nsx-gw.vmware.local:8080/factory_default/trusty_amd64/install_nsx_vm_agent.sh
+      dest: ./nsx-agent.sh
+      mode: 0755
+      force_basic_auth: yes 
+      validate_certs: no 
+  - shell: | 
+         ./nsx-agent.sh
+         service nsx-agent status
+
+#=================================================
+#   in-memory inventory
+#=================================================  
+
+- name: add webservers
+  hosts: localhost
+  connection: local
+  gather_facts: False
+  vars_files:
+    - ../credentials.yaml
+    - ../../main/output.json
+  tasks: 
+  - name: add Web Servers instances to web_servers group
+    add_host:
+       name: "{{ item }}"
+       group: web_servers
+    with_items: 
+      - "{{ webVM_IPs.value }}"
+
+#=================================================
+#   install agents in [web_severs] group
+#================================================= 
+
+- name: setup agent
+  hosts: web_servers
+  remote_user: ubuntu
+  become: yes
+  become_method: sudo
+  gather_facts: False
+  vars_files:
+    - ../credentials.yaml
+    - ../../main/output.json
+  vars:
+    ansible_ssh_private_key_file: "{{aws_dir}}{{Key_pair.value}}.pem"
+  
+  tasks:       
+  - name: get agent script
+    get_url:
+      url: http://nsx-gw.vmware.local:8080/factory_default/trusty_amd64/install_nsx_vm_agent.sh
+      dest: ./nsx-agent.sh
+      mode: 0755
+      force_basic_auth: yes 
+      validate_certs: no 
+  - shell: | 
+        ./nsx-agent.sh 
+        service nsx-agent status
+
+        

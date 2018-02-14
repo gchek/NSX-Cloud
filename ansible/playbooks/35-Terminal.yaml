@@ -1,0 +1,20 @@
+---
+#=================================================
+#   Open Terminal windows for Web and App and Jump Host
+#=================================================
+- name: open Terminal windows
+  hosts: localhost
+  connection: local
+  gather_facts: False
+  vars_files:
+    - ../../main/output.json
+    - ../credentials.yaml
+  tasks:
+  - name: open terminal
+    shell: | 
+        osascript -e 'tell app "Terminal" to do script "ssh -oStrictHostKeyChecking=no -i '{{aws_dir}}{{Key_pair.value}}.pem' ec2-user@{{ Cmpt1_Jumphost_ip.value }}"'
+        osascript -e 'tell app "Terminal" to do script "ssh -oStrictHostKeyChecking=no -i '{{aws_dir}}{{Key_pair.value}}.pem' ubuntu@{{ appVM_IP.value }}"'
+        osascript -e 'tell app "Terminal" to do script "ssh -oStrictHostKeyChecking=no -i '{{aws_dir}}{{Key_pair.value}}.pem' ubuntu@{{ webVM_IPs.value.2 }}"'
+        osascript -e 'tell app "Terminal" to do script "ssh -oStrictHostKeyChecking=no -i '{{aws_dir}}{{Key_pair.value}}.pem' ubuntu@{{ webVM_IPs.value.1 }}"'
+        osascript -e 'tell app "Terminal" to do script "ssh -oStrictHostKeyChecking=no -i '{{aws_dir}}{{Key_pair.value}}.pem' ubuntu@{{ webVM_IPs.value.0 }}"'
+
