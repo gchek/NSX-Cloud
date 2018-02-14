@@ -8,4 +8,4 @@ region      =   "us-west-1"
 
 DBname      =   "CorpDB"
 DBuser      =   "DBadmin"
-DBpass      =   "VMware1!"
+DBpass      =   "DBpasswd"
